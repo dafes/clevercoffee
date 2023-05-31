@@ -42,6 +42,13 @@ typedef enum
   STO_ITEM_WEIGHTSETPOINT,          // Brew weight setpoint
   STO_ITEM_RESERVED_28,             // reserved
   STO_ITEM_RESERVED_29,             // reserved
+  STO_ITEM_INFLUXDB_ON,             // Switch for InfluxDB
+  STO_ITEM_MQTT_ON,                 // Switch for MQTT
+  STO_ITEM_MQTT_USERNAME,           // MQTT Username
+  STO_ITEM_MQTT_PASSWORD,           // MQTT Password
+  STO_ITEM_MQTT_TOPIC_PREFIX,       // MQTT Topic Prefix
+  STO_ITEM_MQTT_SERVER_IP,          // MQTT Server(Broker) IP
+  STO_ITEM_MQTT_SERVER_PORT,        // MQTT Server(Broker) Port
 
   /* WHEN ADDING NEW ITEMS, THE FOLLOWING HAS TO BE UPDATED:
    * - storage structure:  sto_data_t

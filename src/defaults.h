@@ -92,3 +92,24 @@ int writeSysParamsToStorage(void);
 #define PID_KP_STEAM_MIN 0
 #define PID_KP_STEAM_MAX 500
 
+// MQTT
+#define MQTT_ON 0
+#define MQTT_USERNAME "mymqttuser" //#TODO: Neetds to be set inside Storage
+#define MQTT_PASSWORD "mymqttpass" //#TODO: Neetds to be set inside Storage
+#define MQTT_TOPIC_PREFIX "custom/Küche." //#TODO: Neetds to be set inside Storage
+#define MQTT_SERVER_IP "XXX.XXX.XXX.XXX" //#TODO: Neetds to be set inside Storage
+#define MQTT_SERVER_PORT 1883 //#TODO: Neetds to be set inside Storage
+
+// InfluxDB
+#define INFLUXDB_ON 0
+// #define INFLUXDB_URL ""            //#TODO: Neetds to be set inside Storage
+// #define INFLUXDB_INSECURE 1        //#TODO: Neetds to be set inside Storage
+// #define INFLUXDB_AUTH_TYPE 1       //#TODO: Neetds to be set inside Storage
+// #define INFLUXDB_API_TOKEN ""      //#TODO: Neetds to be set inside Storage
+// #define INFLUXDB_ORG_NAME ""       //#TODO: Neetds to be set inside Storage
+// #define INFLUXDB_USER ""            //#TODO: Neetds to be set inside Storage
+// #define INFLUXDB_PASSWORD ""        //#TODO: Neetds to be set inside Storage
+// #define INFLUXDB_DB_NAME "coffee"  //#TODO: Neetds to be set inside Storage
+// #define INFLUXDB_INTERVAL 5000     //#TODO: Neetds to be set inside Storage
+// #define INFLUXDB_TIMEOUT 5000      //#TODO: Neetds to be set inside Storage
+// //#TODO: Variable to define V1 or V2 Mode

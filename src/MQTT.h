@@ -45,12 +45,10 @@ void checkMQTT() {
 
     if ((millis() - lastMQTTConnectionAttempt >= wifiConnectionDelay) && (MQTTReCnctCount <= maxWifiReconnects)) {
         int statusTemp = mqtt.connected();
-
         if (statusTemp != 1) {
             lastMQTTConnectionAttempt = millis();  // Reconnection Timer Function
             MQTTReCnctCount++;                     // Increment reconnection Counter
             debugPrintf("Attempting MQTT reconnection: %i\n", MQTTReCnctCount);
-
             if (mqtt.connect(hostname, mqtt_username, mqtt_password, topic_will, 0, true, "offline") == true) {
                 mqtt.subscribe(topic_set);
                 debugPrintln("Subscribe to MQTT Topics");
@@ -157,7 +155,7 @@ void mqtt_callback(char *topic, byte *data, unsigned int length) {
  */
 void writeSysParamsToMQTT(void) {
     unsigned long currentMillisMQTT = millis();
-    if ((currentMillisMQTT - previousMillisMQTT >= intervalMQTT) && MQTT == 1) {
+    if ((currentMillisMQTT - previousMillisMQTT >= intervalMQTT) && mqttON == 1) {
         previousMillisMQTT = currentMillisMQTT;
 
         if (mqtt.connected() == 1) {
