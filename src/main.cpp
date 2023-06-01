@@ -206,11 +206,11 @@ double brewPIDDelay = BREW_PID_DELAY;      // use userConfig brew detection PID 
 
 uint8_t influxdbON = 0;
 uint8_t mqttON = 0;
-char mqttUsername[25 + 1];
-char mqttPassword[25 + 1];
-char mqttTopicPrefix[32 + 1];
-char mqttServerIP[15 + 1];
-int mqttServerPort;
+String mqttUsername;
+String mqttPassword;
+String mqttTopicPrefix;
+String mqttServerIP;
+uint16_t mqttServerPort;
 
 // system parameter EEPROM storage wrappers (current value as pointer to variable, minimum, maximum, optional storage ID)
 SysPara<uint8_t> sysParaPidOn(&pidON, 0, 1, STO_ITEM_PID_ON);
@@ -239,11 +239,11 @@ SysPara<double> sysParaSteamSetpoint(&steamSetpoint, STEAM_SETPOINT_MIN, STEAM_S
 SysPara<double> sysParaWeightSetpoint(&weightSetpoint, WEIGHTSETPOINT_MIN, WEIGHTSETPOINT_MAX, STO_ITEM_WEIGHTSETPOINT);
 SysPara<uint8_t> sysParainfluxdbON(&influxdbON, 0, 1, STO_ITEM_INFLUXDB_ON);
 SysPara<uint8_t> sysParamqttON(&mqttON, 0, 1, STO_ITEM_MQTT_ON);
-SysPara<char> sysParamqttUsername(&mqttUsername, 0, 1, STO_ITEM_MQTT_USERNAME);
-SysPara<char> sysParamqttPassword(&mqttPassword, 0, 1, STO_ITEM_MQTT_PASSWORD);
-SysPara<char> sysParamqttTopicPrefix(&mqttTopicPrefix, 0, 1, STO_ITEM_MQTT_TOPIC_PREFIX);
-SysPara<char> sysParamqttServerIP(&mqttServerIP, 0, 1, STO_ITEM_MQTT_SERVER_IP);
-SysPara<int> sysParamqttServerPort(&mqttServerPort, 0, 1, STO_ITEM_MQTT_SERVER_PORT);
+SysPara<String> sysParamqttUsername(&mqttUsername, "0", "1", STO_ITEM_MQTT_USERNAME);
+SysPara<String> sysParamqttPassword(&mqttPassword, "0", "1", STO_ITEM_MQTT_PASSWORD);
+SysPara<String> sysParamqttTopicPrefix(&mqttTopicPrefix, "0", "1", STO_ITEM_MQTT_TOPIC_PREFIX);
+SysPara<String> sysParamqttServerIP(&mqttServerIP, "0", "1", STO_ITEM_MQTT_SERVER_IP);
+SysPara<uint16_t> sysParamqttServerPort(&mqttServerPort, 0, 65535, STO_ITEM_MQTT_SERVER_PORT);
 
 // Other variables
 int relayON, relayOFF;           // used for relay trigger type. Do not change!

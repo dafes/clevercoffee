@@ -62,11 +62,11 @@ typedef struct __attribute__((packed)) {
     double steamSetpoint;
     uint8_t influxdbON;
     uint8_t mqttON;
-    char mqttUsername[25 + 1];
-    char mqttPassword[25 + 1];
-    char mqttTopicPrefix[32 + 1];
-    char mqttServerIP[15 + 1];
-    int mqttServerPort;
+    String mqttUsername;
+    String mqttPassword;
+    String mqttTopicPrefix;
+    String mqttServerIP;
+    uint16_t mqttServerPort;
 } sto_data_t;
 
 // set item defaults
