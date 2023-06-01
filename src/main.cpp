@@ -156,6 +156,7 @@ void setNormalPIDTunings();
 void setBDPIDTunings();
 void loopcalibrate();
 void looppid();
+void loopLED();
 void printMachineState();
 char const* machinestateEnumToString(MachineState machineState);
 void initSteamQM();
@@ -2025,6 +2026,10 @@ void setup() {
         pinMode(PIN_BREWSWITCH, INPUT_PULLDOWN);
     }
 
+    if (TEMP_LED) {
+        pinMode(PIN_STATUSLED, OUTPUT);
+    }
+
     pinMode(PIN_STEAMSWITCH, INPUT_PULLDOWN);
 
     #if OLED_DISPLAY != 0
@@ -2127,6 +2132,11 @@ void setup() {
 
 void loop() {
     looppid();
+
+    if (TEMP_LED) {
+        loopLED();
+    }
+
     checkForRemoteSerialClients();
 }
 
@@ -2365,6 +2375,15 @@ void looppid() {
         bPID.SetTunings(aggbKp, aggbKi, aggbKd, 1);
     }
     // sensor error OR Emergency Stop
+}
+
+void loopLED() {
+    if ((machineState == kPidNormal && (fabs(temperature  - setpoint) < 0.3)) || (temperature > 115 && fabs(temperature - setpoint) < 5)) {
+        digitalWrite(PIN_STATUSLED, HIGH);
+    }
+    else {
+        digitalWrite(PIN_STATUSLED, LOW);
+    }
 }
 
 void setBackflush(int backflush) {
