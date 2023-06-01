@@ -326,10 +326,11 @@ ZACwire Sensor2(PIN_TEMPSENSOR, 306);    // set pin to receive signal from the T
 
 
 enum SectionNames {
-    sPIDSection,    //0: 'PID Parameters',
-    sTempSection,   //1: 'Temperature and Preinfusion',
-    sBDSection,     //2: 'Brew Detection and Brew PID Parameters',
-    sMonSection,    //3: 'MQTT and InfluxDB'
+    sPIDSection,    // 0: 'PID Parameters',
+    sTempSection,   // 1: 'Temperature and Preinfusion',
+    sBDSection,     // 2: 'Brew Detection and Brew PID Parameters',
+    sMQTTSection,   // 3: 'MQTT',
+    sInfluxSection, // 4: 'InfluxDB'
     sOtherSection
 };
 
@@ -1835,7 +1836,7 @@ void setup() {
         .hasHelpText = false,
         .helpText = "",
         .type = kUInt8,
-        .section = sMonSection,
+        .section = sInfluxSection,
         .position = 27,
         .show = [] { return true; },
         .minValue = 0,
@@ -1848,7 +1849,7 @@ void setup() {
         .hasHelpText = false,
         .helpText = "",
         .type = kUInt8,
-        .section = sMonSection,
+        .section = sMQTTSection,
         .position = 28,
         .show = [] { return true; },
         .minValue = 0,
@@ -1861,7 +1862,7 @@ void setup() {
         .hasHelpText = false,
         .helpText = "",
         .type = kCString,
-        .section = sMonSection,
+        .section = sMQTTSection,
         .position = 29,
         .show = [] { return true; },
         .minValue = 0,
@@ -1874,7 +1875,7 @@ void setup() {
         .hasHelpText = false,
         .helpText = "",
         .type = kCString,
-        .section = sMonSection,
+        .section = sMQTTSection,
         .position = 30,
         .show = [] { return true; },
         .minValue = 0,
@@ -1887,7 +1888,7 @@ void setup() {
         .hasHelpText = false,
         .helpText = "",
         .type = kCString,
-        .section = sMonSection,
+        .section = sMQTTSection,
         .position = 31,
         .show = [] { return true; },
         .minValue = 0,
@@ -1900,7 +1901,7 @@ void setup() {
         .hasHelpText = false,
         .helpText = "",
         .type = kCString,
-        .section = sMonSection,
+        .section = sMQTTSection,
         .position = 32,
         .show = [] { return true; },
         .minValue = 0,
@@ -1913,7 +1914,7 @@ void setup() {
         .hasHelpText = true,
         .helpText = "Port of the MQTT Broker (example 1833)",
         .type = kInteger,
-        .section = sMonSection,
+        .section = sMQTTSection,
         .position = 33,
         .show = [] { return true; },
         .minValue = 0,
