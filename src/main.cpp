@@ -325,10 +325,10 @@ ZACwire Sensor2(PIN_TEMPSENSOR, 306);    // set pin to receive signal from the T
 
 
 enum SectionNames {
-    sPIDSection,
-    sTempSection,
-    sBDSection,
-    sMonSection,
+    sPIDSection,    //0: 'PID Parameters',
+    sTempSection,   //1: 'Temperature and Preinfusion',
+    sBDSection,     //2: 'Brew Detection and Brew PID Parameters',
+    sMonSection,    //3: 'MQTT and InfluxDB'
     sOtherSection
 };
 
@@ -1839,7 +1839,7 @@ void setup() {
         .show = [] { return true; },
         .minValue = 0,
         .maxValue = 1,
-        .ptr = (void*)&influxdbON
+        .ptr = (void *)&influxdbON
     };
 
     editableVars["MQTT_ON"] = {
@@ -1852,7 +1852,7 @@ void setup() {
         .show = [] { return true; },
         .minValue = 0,
         .maxValue = 1,
-        .ptr = (void*)&mqttON
+        .ptr = (void *)&mqttON
     };
 
     editableVars["MQTT_USERNAME"] = {
@@ -1865,7 +1865,7 @@ void setup() {
         .show = [] { return true; },
         .minValue = 0,
         .maxValue = 1,
-        .ptr = (void*)&mqttUsername
+        .ptr = (void *)&mqttUsername
     };
 
     editableVars["MQTT_Password"] = {
@@ -1878,7 +1878,7 @@ void setup() {
         .show = [] { return true; },
         .minValue = 0,
         .maxValue = 1,
-        .ptr = (void*)&mqttPassword
+        .ptr = (void *)&mqttPassword
     };
 
     editableVars["MQTT_TOPIC_PREFIX"] = {
@@ -1891,7 +1891,7 @@ void setup() {
         .show = [] { return true; },
         .minValue = 0,
         .maxValue = 1,
-        .ptr = (void*)&mqttTopicPrefix
+        .ptr = (void *)&mqttTopicPrefix
     };
 
     editableVars["MQTT_SERVER_IP"] = {
@@ -1904,20 +1904,20 @@ void setup() {
         .show = [] { return true; },
         .minValue = 0,
         .maxValue = 1,
-        .ptr = (void*)&mqttServerIP
+        .ptr = (void *)&mqttServerIP
     };
 
     editableVars["MQTT_SERVER_PORT"] = {
         .displayName = "MQTT Server Port",
-        .hasHelpText = false,
-        .helpText = "",
-        .type = kUInt8,
+        .hasHelpText = true,
+        .helpText = "Port of the MQTT Broker (example 1833)",
+        .type = kInteger,
         .section = sMonSection,
         .position = 33,
         .show = [] { return true; },
         .minValue = 0,
-        .maxValue = 1,
-        .ptr = (void*)&mqttServerPort
+        .maxValue = 65535,
+        .ptr = (void *)&mqttServerPort
     };
 
     editableVars["VERSION"] = {

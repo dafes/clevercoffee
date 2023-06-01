@@ -96,8 +96,8 @@ int writeSysParamsToStorage(void);
 #define MQTT_ON 0
 #define MQTT_USERNAME "mymqttuser" //#TODO: Neetds to be set inside Storage
 #define MQTT_PASSWORD "mymqttpass" //#TODO: Neetds to be set inside Storage
-#define MQTT_TOPIC_PREFIX "custom/Küche." //#TODO: Neetds to be set inside Storage
-#define MQTT_SERVER_IP "XXX.XXX.XXX.XXX" //#TODO: Neetds to be set inside Storage
+#define MQTT_TOPIC_PREFIX "mqtttopic" //#TODO: Neetds to be set inside Storage
+#define MQTT_SERVER_IP "serverip" //#TODO: Neetds to be set inside Storage
 #define MQTT_SERVER_PORT 1883 //#TODO: Neetds to be set inside Storage
 
 // InfluxDB
