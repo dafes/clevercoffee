@@ -179,7 +179,7 @@ void Displaymachinestate() {
                 u8g2.print(wifiReconnects);
             }
 
-            if (MQTT == 1) {
+            if (mqttON == 1) {
                 if (mqtt.connected() == 1) {
                     u8g2.setCursor(60, 1);
                     u8g2.setFont(u8g2_font_profont11_tf);

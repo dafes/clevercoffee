@@ -134,6 +134,10 @@ bool steamQM_active = false;        // steam-mode is active
 bool brewSteamDetectedQM = false;   // brew/steam detected, not sure yet what it is
 bool coolingFlushDetectedQM = false;
 
+// System Config
+int mqtt_unconfigured = 1;
+int InfluxDB_unconfigured = 1;
+
 // Pressure sensor
 #if (PRESSURESENSOR == 1)   // Pressure sensor connected
     int offset = OFFSET;
@@ -201,6 +205,14 @@ double brewtimesoftware = BREW_SW_TIME;  // use userConfig time until disabling 
 double brewSensitivity = BD_SENSITIVITY;  // use userConfig brew detection sensitivity
 double brewPIDDelay = BREW_PID_DELAY;      // use userConfig brew detection PID delay
 
+uint8_t influxdbON = 0;
+uint8_t mqttON = 0;
+String mqttUsername;
+String mqttPassword;
+String mqttTopicPrefix;
+String mqttServerIP;
+uint16_t mqttServerPort;
+
 // system parameter EEPROM storage wrappers (current value as pointer to variable, minimum, maximum, optional storage ID)
 SysPara<uint8_t> sysParaPidOn(&pidON, 0, 1, STO_ITEM_PID_ON);
 SysPara<uint8_t> sysParaUsePonM(&usePonM, 0, 1, STO_ITEM_PID_START_PONM);
@@ -226,6 +238,13 @@ SysPara<double> sysParaPreInfPause(&preinfusionpause, PRE_INFUSION_PAUSE_MIN, PR
 SysPara<double> sysParaPidKpSteam(&steamKp, PID_KP_STEAM_MIN, PID_KP_STEAM_MAX, STO_ITEM_PID_KP_STEAM);
 SysPara<double> sysParaSteamSetpoint(&steamSetpoint, STEAM_SETPOINT_MIN, STEAM_SETPOINT_MAX, STO_ITEM_STEAM_SETPOINT);
 SysPara<double> sysParaWeightSetpoint(&weightSetpoint, WEIGHTSETPOINT_MIN, WEIGHTSETPOINT_MAX, STO_ITEM_WEIGHTSETPOINT);
+SysPara<uint8_t> sysParainfluxdbON(&influxdbON, 0, 1, STO_ITEM_INFLUXDB_ON);
+SysPara<uint8_t> sysParamqttON(&mqttON, 0, 1, STO_ITEM_MQTT_ON);
+SysPara<String> sysParamqttUsername(&mqttUsername, "0", "1", STO_ITEM_MQTT_USERNAME);
+SysPara<String> sysParamqttPassword(&mqttPassword, "0", "1", STO_ITEM_MQTT_PASSWORD);
+SysPara<String> sysParamqttTopicPrefix(&mqttTopicPrefix, "0", "1", STO_ITEM_MQTT_TOPIC_PREFIX);
+SysPara<String> sysParamqttServerIP(&mqttServerIP, "0", "1", STO_ITEM_MQTT_SERVER_IP);
+SysPara<uint16_t> sysParamqttServerPort(&mqttServerPort, 0, 65535, STO_ITEM_MQTT_SERVER_PORT);
 
 // Other variables
 int relayON, relayOFF;           // used for relay trigger type. Do not change!
@@ -307,9 +326,11 @@ ZACwire Sensor2(PIN_TEMPSENSOR, 306);    // set pin to receive signal from the T
 
 
 enum SectionNames {
-    sPIDSection,
-    sTempSection,
-    sBDSection,
+    sPIDSection,    // 0: 'PID Parameters',
+    sTempSection,   // 1: 'Temperature and Preinfusion',
+    sBDSection,     // 2: 'Brew Detection and Brew PID Parameters',
+    sMQTTSection,   // 3: 'MQTT',
+    sInfluxSection, // 4: 'InfluxDB'
     sOtherSection
 };
 
@@ -1810,13 +1831,104 @@ void setup() {
         .ptr = (void *)&backflushON
     };
 
+    editableVars["INFLUXDB_ON"] = {
+        .displayName = "Enable InfluxDB",
+        .hasHelpText = false,
+        .helpText = "",
+        .type = kUInt8,
+        .section = sInfluxSection,
+        .position = 27,
+        .show = [] { return true; },
+        .minValue = 0,
+        .maxValue = 1,
+        .ptr = (void *)&influxdbON
+    };
+
+    editableVars["MQTT_ON"] = {
+        .displayName = "Enable MQTT",
+        .hasHelpText = false,
+        .helpText = "",
+        .type = kUInt8,
+        .section = sMQTTSection,
+        .position = 28,
+        .show = [] { return true; },
+        .minValue = 0,
+        .maxValue = 1,
+        .ptr = (void *)&mqttON
+    };
+
+    editableVars["MQTT_USERNAME"] = {
+        .displayName = "MQTT Username",
+        .hasHelpText = false,
+        .helpText = "",
+        .type = kCString,
+        .section = sMQTTSection,
+        .position = 29,
+        .show = [] { return true; },
+        .minValue = 0,
+        .maxValue = 1,
+        .ptr = (void *)&mqttUsername
+    };
+
+    editableVars["MQTT_Password"] = {
+        .displayName = "MQTT Password",
+        .hasHelpText = false,
+        .helpText = "",
+        .type = kCString,
+        .section = sMQTTSection,
+        .position = 30,
+        .show = [] { return true; },
+        .minValue = 0,
+        .maxValue = 1,
+        .ptr = (void *)&mqttPassword
+    };
+
+    editableVars["MQTT_TOPIC_PREFIX"] = {
+        .displayName = "MQTT Topic Prefix",
+        .hasHelpText = false,
+        .helpText = "",
+        .type = kCString,
+        .section = sMQTTSection,
+        .position = 31,
+        .show = [] { return true; },
+        .minValue = 0,
+        .maxValue = 1,
+        .ptr = (void *)&mqttTopicPrefix
+    };
+
+    editableVars["MQTT_SERVER_IP"] = {
+        .displayName = "MQTT Server IP",
+        .hasHelpText = false,
+        .helpText = "",
+        .type = kCString,
+        .section = sMQTTSection,
+        .position = 32,
+        .show = [] { return true; },
+        .minValue = 0,
+        .maxValue = 1,
+        .ptr = (void *)&mqttServerIP
+    };
+
+    editableVars["MQTT_SERVER_PORT"] = {
+        .displayName = "MQTT Server Port",
+        .hasHelpText = true,
+        .helpText = "Port of the MQTT Broker (example 1833)",
+        .type = kInteger,
+        .section = sMQTTSection,
+        .position = 33,
+        .show = [] { return true; },
+        .minValue = 0,
+        .maxValue = 65535,
+        .ptr = (void *)&mqttServerPort
+    };
+
     editableVars["VERSION"] = {
         .displayName = F("Version"),
         .hasHelpText = false,
         .helpText = "",
         .type = kCString,
         .section = sOtherSection,
-        .position = 27,
+        .position = 34,
         .show = [] { return false; },
         .minValue = 0,
         .maxValue = 1,
@@ -1947,17 +2059,20 @@ void setup() {
             ArduinoOTA.begin();
         }
 
-        if (MQTT == 1) {
+        if (mqttON == 1) {
             snprintf(topic_will, sizeof(topic_will), "%s%s/%s", mqtt_topic_prefix, hostname, "status");
             snprintf(topic_set, sizeof(topic_set), "%s%s/+/%s", mqtt_topic_prefix, hostname, "set");
             mqtt.setServer(mqtt_server_ip, mqtt_server_port);
             mqtt.setCallback(mqtt_callback);
             checkMQTT();
+            mqtt_unconfigured = 0;
         }
 
-        if (INFLUXDB == 1) {
+        if (influxdbON == 1) {
            influxDbSetup();
+           InfluxDB_unconfigured = 0;
         }
+
     } else if (connectmode == 0) {
         wm.disconnect();              // no wm
         readSysParamsFromStorage();   // get values from stroage
@@ -2030,7 +2145,17 @@ void loop() {
 void looppid() {
     // Only do Wifi stuff, if Wifi is connected
     if (WiFi.status() == WL_CONNECTED && offlineMode == 0) {
-        if (MQTT == 1) {
+        if (mqttON == 1) {
+            // Check if MQTT was switchedOn
+            if (mqtt_unconfigured == 1) {
+                debugPrintln("MQTT was switched on. Configure MQTT\n");
+                snprintf(topic_will, sizeof(topic_will), "%s%s/%s", mqtt_topic_prefix, hostname, "status");
+                snprintf(topic_set, sizeof(topic_set), "%s%s/+/%s", mqtt_topic_prefix, hostname, "set");
+                mqtt.setServer(mqtt_server_ip, mqtt_server_port);
+                mqtt.setCallback(mqtt_callback);
+                // Prevent secondary configuration
+                mqtt_unconfigured = 0;
+            }
             checkMQTT();
             writeSysParamsToMQTT();
 
@@ -2038,7 +2163,15 @@ void looppid() {
                 mqtt.loop();
             }
         }
-
+        // MQTT was switched on and configured and is now switched off
+        else if (mqttON == 0 && mqtt_unconfigured == 0)
+        {
+            debugPrintln("MQTT was switched off. Deconfigure MQTT\n");
+            //#TODO: Check for more stuff to do here?
+            mqtt.disconnect();
+            mqtt_unconfigured = 1;
+        }
+        
         ArduinoOTA.handle();  // For OTA
 
         // Disable interrupt if OTA is starting, otherwise it will not work
@@ -2107,8 +2240,18 @@ void looppid() {
     checkpowerswitch();
     handleMachineState();      // update machineState
 
-    if (INFLUXDB == 1  && offlineMode == 0 ) {
+    if (influxdbON == 1  && offlineMode == 0 ) {
+        // Check if InfluxDB was switchedOn
+        if (InfluxDB_unconfigured == 1) {
+            debugPrintln("InfluxDB was switched on. Configure InfluxDB\n");
+            influxDbSetup();
+            InfluxDB_unconfigured = 0;
+        }
         sendInflux();
+    }
+    else if (influxdbON == 0 && InfluxDB_unconfigured == 0 && offlineMode == 0 ) {
+        InfluxDB_unconfigured = 1;
+        debugPrintln("InfluxDB was switched off. Deconfigure InfluxDB\n");
     }
 
     #if (ONLYPIDSCALE == 1)  // only by shottimer 2, scale
@@ -2334,6 +2477,13 @@ int readSysParamsFromStorage(void) {
     if (sysParaSteamSetpoint.getStorage() != 0) return -1;
     if (sysParaWeightSetpoint.getStorage() != 0) return -1;
     if (sysParaWifiCredentialsSaved.getStorage() != 0) return -1;
+    if (sysParainfluxdbON.getStorage() != 0) return -1;
+    if (sysParamqttON.getStorage() != 0) return -1;
+    if (sysParamqttUsername.getStorage() != 0) return -1;
+    if (sysParamqttPassword.getStorage() != 0) return -1;
+    if (sysParamqttTopicPrefix.getStorage() != 0) return -1;
+    if (sysParamqttServerIP.getStorage() != 0) return -1;
+    if (sysParamqttServerPort.getStorage() != 0) return -1;
 
     return 0;
 }
@@ -2368,6 +2518,13 @@ int writeSysParamsToStorage(void) {
     if (sysParaSteamSetpoint.setStorage() != 0) return -1;
     if (sysParaWeightSetpoint.setStorage() != 0) return -1;
     if (sysParaWifiCredentialsSaved.setStorage() != 0) return -1;
+    if (sysParainfluxdbON.setStorage() != 0) return -1;
+    if (sysParamqttON.setStorage() != 0) return -1;
+    if (sysParamqttUsername.setStorage() != 0) return -1;
+    if (sysParamqttPassword.setStorage() != 0) return -1;
+    if (sysParamqttTopicPrefix.setStorage() != 0) return -1;
+    if (sysParamqttServerIP.setStorage() != 0) return -1;
+    if (sysParamqttServerPort.setStorage() != 0) return -1;
 
     return storageCommit();
 }

@@ -60,6 +60,13 @@ typedef struct __attribute__((packed)) {
     double weightSetpoint;
     double steamkp;
     double steamSetpoint;
+    uint8_t influxdbON;
+    uint8_t mqttON;
+    String mqttUsername;
+    String mqttPassword;
+    String mqttTopicPrefix;
+    String mqttServerIP;
+    uint16_t mqttServerPort;
 } sto_data_t;
 
 // set item defaults
@@ -107,7 +114,14 @@ static const sto_data_t itemDefaults PROGMEM = {
     "",                                       // STO_ITEM_WIFI_PASSWORD
     SCALE_WEIGHTSETPOINT,                     // STO_ITEM_WEIGHTSETPOINT
     STEAMKP,                                  // STO_ITEM_PID_KP_STEAM
-    STEAMSETPOINT                             // STO_ITEM_STEAM_SETPOINT
+    STEAMSETPOINT,                            // STO_ITEM_STEAM_SETPOINT
+    INFLUXDB_ON,                              // STO_ITEM_INFLUXDB_ON
+    MQTT_ON,                                  // STO_ITEM_MQTT_ON
+    MQTT_USERNAME,                            // STO_ITEM_MQTT_USERNAME
+    MQTT_PASSWORD,                            // STO_ITEM_MQTT_PASSWORD
+    MQTT_TOPIC_PREFIX,                        // STO_ITEM_MQTT_TOPIC_PREFIX
+    MQTT_SERVER_IP,                           // STO_ITEM_MQTT_SERVER_IP
+    MQTT_SERVER_PORT                          // STO_ITEM_MQTT_SERVER_PORT
 };
 
 /**
@@ -251,13 +265,48 @@ static inline int32_t getItemAddr(sto_item_id_t itemId, uint16_t* maxItemSize = 
             break;
 
          case STO_ITEM_WEIGHTSETPOINT:
-            addr = offsetof(sto_data_t,weightSetpoint );
+            addr = offsetof(sto_data_t, weightSetpoint );
             size = STRUCT_MEMBER_SIZE(sto_data_t,weightSetpoint);
             break;
 
         case STO_ITEM_STEAM_SETPOINT:
-            addr = offsetof(sto_data_t,steamSetpoint );
+            addr = offsetof(sto_data_t, steamSetpoint );
             size = STRUCT_MEMBER_SIZE(sto_data_t,steamSetpoint);
+            break;
+
+        case STO_ITEM_INFLUXDB_ON:
+            addr = offsetof(sto_data_t, influxdbON );
+            size = STRUCT_MEMBER_SIZE(sto_data_t,influxdbON);
+            break;
+
+        case STO_ITEM_MQTT_ON:
+            addr = offsetof(sto_data_t, mqttON );
+            size = STRUCT_MEMBER_SIZE(sto_data_t,mqttON);
+            break;
+
+        case STO_ITEM_MQTT_USERNAME:
+            addr = offsetof(sto_data_t, mqttUsername );
+            size = STRUCT_MEMBER_SIZE(sto_data_t,mqttUsername);
+            break;
+
+        case STO_ITEM_MQTT_PASSWORD:
+            addr = offsetof(sto_data_t, mqttPassword );
+            size = STRUCT_MEMBER_SIZE(sto_data_t,mqttPassword);
+            break;
+
+        case STO_ITEM_MQTT_TOPIC_PREFIX:
+            addr = offsetof(sto_data_t, mqttTopicPrefix );
+            size = STRUCT_MEMBER_SIZE(sto_data_t,mqttTopicPrefix);
+            break;
+
+        case STO_ITEM_MQTT_SERVER_IP:
+            addr = offsetof(sto_data_t, mqttServerIP );
+            size = STRUCT_MEMBER_SIZE(sto_data_t,mqttServerIP);
+            break;
+
+        case STO_ITEM_MQTT_SERVER_PORT:
+            addr = offsetof(sto_data_t, mqttServerPort );
+            size = STRUCT_MEMBER_SIZE(sto_data_t,mqttServerPort);
             break;
 
         default:

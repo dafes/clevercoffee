@@ -67,7 +67,9 @@ const vueApp = Vue.createApp({
             const sectionNames = {
                 0: 'PID Parameters',
                 1: 'Temperature and Preinfusion',
-                2: 'Brew Detection and Brew PID Parameters'
+                2: 'Brew Detection and Brew PID Parameters',
+                3: 'MQTT',
+                4: 'InfluxDB'
             }
             return sectionNames[sectionId]
         }
