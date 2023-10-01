@@ -1506,6 +1506,12 @@ void websiteSetup() {
 const char sysVersion[] = (STR(FW_VERSION) "." STR(FW_SUBVERSION) "." STR(FW_HOTFIX) " " FW_BRANCH " " AUTO_VERSION);
 
 void setup() {
+    #TODO: Check on this
+    storageSetup();
+    if(loadCoffeeConfig(&config)) {
+        debugPrintf("Config loaded correctly\n");
+    }
+
     editableVars["PID_ON"] = {
         .displayName = "Enable PID Controller",
         .hasHelpText = false,
@@ -1992,8 +1998,6 @@ void setup() {
     Serial.begin(115200);
 
     initTimer1();
-
-    storageSetup();
 
     // Define trigger type
     if (triggerType) {
