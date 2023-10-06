@@ -14,56 +14,267 @@
 
 #include "ISR.h"
 
+#include <ArduinoJson.h>
+
 #define STRUCT_MEMBER_SIZE(Type, Member) sizeof(((Type*)0)->Member)
+#define EEPROM_SIZE 4096
+#define JSON_BUFFER_SIZE 512
 
-// storage data structure
-typedef struct __attribute__((packed)) {
-    // Any 'freeToUse' areas ensure the compatibility to origin EEPROM layout and can be used by new value.
-    double pidKpRegular;
-    uint8_t reserved1[2];
-    double pidTnRegular;
-    uint8_t pidOn;
-    uint8_t freeToUse1;
-    double pidTvRegular;
-    double pidIMaxRegular;
-    uint8_t freeToUse2;
-    double brewSetpoint;
-    double brewTempOffset;
-    uint8_t freeToUse3;
-    double brewTimeMs;
-    uint8_t freeToUse4[2];
-    double preInfusionTimeMs;
-    uint8_t freeToUse5[2];
-    double preInfusionPauseMs;
-    uint8_t freeToUse6[21];
-    uint8_t pidBdOn;
-    double pidKpBd;
-    uint8_t freeToUse7[2];
-    double pidTnBd;
-    uint8_t freeToUse8[2];
-    double pidTvBd;
-    uint8_t freeToUse9[2];
-    double brewSwTimeSec;
-    double brewPIDDelaySec;
-    uint8_t freeToUse10;
-    double brewDetectionThreshold;
-    uint8_t wifiCredentialsSaved;
-    uint8_t useStartPonM;
-    double pidKpStart;
-    uint8_t freeToUse12[2];
-    uint8_t softApEnabledCheck;
-    uint8_t freeToUse13[9];
-    double pidTnStart;
-    uint8_t freeToUse14[2];
-    char wifiSSID[25 + 1];
-    char wifiPassword[25 + 1];
-    double weightSetpoint;
-    double steamkp;
-    double steamSetpoint;
-    uint8_t standbyModeOn;
-    double standbyModeTime;
-} sto_data_t;
 
+/**
+ * @brief Validates if there is a valid JSON object in EEPROM.
+ *
+ * @return true if a valid JSON object is found, false otherwise.
+ */
+bool validateEEPROMData() {
+    // Read the first byte of EEPROM
+    uint8_t firstByte = EEPROM.read(0);
+
+    // Check if it's the start of a JSON object
+    if (firstByte == '{') {
+        // Try to deserialize the JSON object
+        StaticJsonDocument<JSON_BUFFER_SIZE> jsonDoc;
+        DeserializationError error = deserializeJson(jsonDoc, EEPROM);
+
+        // Check if deserialization was successful
+        if (!error) {
+            // Valid JSON object found in EEPROM
+            return true;
+        }
+    }
+
+    // No valid JSON object found in EEPROM
+    return false;
+}
+
+
+/**
+ * @brief Sets up the storage module by initializing the EEPROM and checking for valid data.
+ *
+ * This function initializes the EEPROM with a specified size, defined by EEPROM_SIZE.
+ * If the initialization fails, false is returned. If it succeeds, the function proceeds
+ * to check if the EEPROM contains valid JSON data using the validateEEPROMData() function.
+ * If the data is not valid, an error message is printed and the function performs a factory reset
+ * by calling storageFactoryReset(). After the reset, the function sets default values by calling
+ * SetDefault(). If the EEPROM contains valid data or if the defaults are successfully set, true is returned.
+ *
+ * @return  true if setup succeeds or valid data is present, false if it fails or invalid data is found.
+ */
+bool storageSetup(void) {
+
+    if (!EEPROM.begin(EEPROM_SIZE)) {
+        debugPrintf("%s(): EEPROM initialization failed!\n", __func__);
+        return false;
+    }
+    // Check if Storage contains valid JSON:
+    if(!validateEEPROMData()) {
+        debugPrintf("EEPROM does not contains valid JSON!\n");
+        debugPrintf("Setting defaults\n");
+        // First reset EEPROM
+        storageFactoryReset();
+        return SetDefault();
+    }
+    return true;
+}
+
+
+/**
+ * @brief Resets all storage data.
+ *
+ * @return  0 - succeed
+ *         <0 - failed
+ */
+int storageFactoryReset(void) {
+    debugPrintf("%s(): reset all values\n", __func__);
+    memset(EEPROM.getDataPtr(), 0xFF, EEPROM_SIZE);
+    return storageCommit();
+}
+
+
+/**
+ * @brief Loads the coffee_config struct from EEPROM.
+ *
+ * @param config Reference to the coffee_config struct to populate.
+ * @return true if successful, false otherwise.
+*/
+bool loadCoffeeConfig(coffee_config& config) {
+
+    // No Valid Config found in EEPROM
+    if(!validateEEPROMData()) {
+        return SetDefault();
+        
+
+    }
+
+    // Read the JSON string from EEPROM
+    String jsonString;
+    for (size_t i = 0; i < EEPROM_SIZE; i++) {
+        char c = EEPROM.read(i);
+        if (c == '\0') {
+            break;
+        }
+        jsonString += c;
+    }
+
+    // Deserialize the JSON string into the coffee_config struct
+    DynamicJsonDocument jsonDoc(JSON_BUFFER_SIZE);
+    DeserializationError error = deserializeJson(jsonDoc, jsonString);
+
+    if (error) {
+        // Failed to deserialize JSON
+        return false;
+    }
+
+    // Extract values from JSON object
+    config.pidKpRegular = jsonDoc["pidKpRegular"].as<double>();
+    config.pidTnRegular = jsonDoc["pidTnRegular"].as<double>();
+    config.pidOn = jsonDoc["pidOn"].as<bool>();
+    config.pidTvRegular = jsonDoc["pidTvRegular"].as<double>();
+    config.pidIMaxRegular = jsonDoc["pidIMaxRegular"].as<double>();
+    config.brewSetpoint = jsonDoc["brewSetpoint"].as<double>();
+    config.brewTempOffset = jsonDoc["brewTempOffset"].as<double>();
+    config.brewTimeMs = jsonDoc["brewTimeMs"].as<double>();
+    config.preInfusionTimeMs = jsonDoc["preInfusionTimeMs"].as<double>();
+    config.preInfusionPauseMs = jsonDoc["preInfusionPauseMs"].as<double>();
+    config.pidBdOn = jsonDoc["pidBdOn"].as<bool>();
+    config.pidKpBd = jsonDoc["pidKpBd"].as<double>();
+    config.pidTnBd = jsonDoc["pidTnBd"].as<double>();
+    config.pidTvBd = jsonDoc["pidTvBd"].as<double>();
+    config.brewSwTimeSec = jsonDoc["brewSwTimeSec"].as<double>();
+    config.brewPIDDelaySec = jsonDoc["brewPIDDelaySec"].as<double>();
+    config.freeToUse10 = jsonDoc["freeToUse10"].as<bool>();
+    config.brewDetectionThreshold = jsonDoc["brewDetectionThreshold"].as<double>();
+    config.wifiCredentialsSaved = jsonDoc["wifiCredentialsSaved"].as<bool>();
+    config.useStartPonM = jsonDoc["useStartPonM"].as<bool>();
+    config.pidKpStart = jsonDoc["pidKpStart"].as<double>();
+    config.softApEnabledCheck = jsonDoc["softApEnabledCheck"].as<bool>();
+    config.pidTnStart = jsonDoc["pidTnStart"].as<double>();
+    strlcpy(config.wifiSSID, jsonDoc["wifiSSID"].as<char*>(), sizeof(config.wifiSSID));
+    strlcpy(config.wifiPassword, jsonDoc["wifiPassword"].as<char*>(), sizeof(config.wifiPassword));
+    config.weightSetpoint = jsonDoc["weightSetpoint"].as<double>();
+    config.steamkp = jsonDoc["steamkp"].as<double>();
+    config.steamSetpoint = jsonDoc["steamSetpoint"].as<double>();
+    config.standbyModeOn = jsonDoc["standbyModeOn"].as<bool>();
+    config.standbyModeTime = jsonDoc["standbyModeTime"].as<double>();
+
+    return true;
+}
+
+/**
+ * @brief Saves the coffee_config struct to EEPROM.
+ *
+ * @param config Reference to the coffee_config struct to save.
+ * @return true if successful, false otherwise.
+ */
+bool saveCoffeeConfig(const coffee_config& config) {
+    // Create a JSON object from the coffee_config struct
+    DynamicJsonDocument jsonDoc(JSON_BUFFER_SIZE);
+    jsonDoc["pidKpRegular"] = config.pidKpRegular;
+    jsonDoc["pidTnRegular"] = config.pidTnRegular;
+    jsonDoc["pidOn"] = config.pidOn;
+    jsonDoc["pidTvRegular"] = config.pidTvRegular;
+    jsonDoc["pidIMaxRegular"] = config.pidIMaxRegular;
+    jsonDoc["brewSetpoint"] = config.brewSetpoint;
+    jsonDoc["brewTempOffset"] = config.brewTempOffset;
+    jsonDoc["brewTimeMs"] = config.brewTimeMs;
+    jsonDoc["preInfusionTimeMs"] = config.preInfusionTimeMs;
+    jsonDoc["preInfusionPauseMs"] = config.preInfusionPauseMs;
+    jsonDoc["pidBdOn"] = config.pidBdOn;
+    jsonDoc["pidKpBd"] = config.pidKpBd;
+    jsonDoc["pidTnBd"] = config.pidTnBd;
+    jsonDoc["pidTvBd"] = config.pidTvBd;
+    jsonDoc["brewSwTimeSec"] = config.brewSwTimeSec;
+    jsonDoc["brewPIDDelaySec"] = config.brewPIDDelaySec;
+    jsonDoc["brewDetectionThreshold"] = config.brewDetectionThreshold;
+    jsonDoc["wifiCredentialsSaved"] = config.wifiCredentialsSaved;
+    jsonDoc["useStartPonM"] = config.useStartPonM;
+    jsonDoc["pidKpStart"] = config.pidKpStart;
+    jsonDoc["softApEnabledCheck"] = config.softApEnabledCheck;
+    jsonDoc["pidTnStart"] = config.pidTnStart;
+    jsonDoc["wifiSSID"] = config.wifiSSID;
+    jsonDoc["wifiPassword"] = config.wifiPassword;
+    jsonDoc["weightSetpoint"] = config.weightSetpoint;
+    jsonDoc["steamkp"] = config.steamkp;
+    jsonDoc["steamSetpoint"] = config.steamSetpoint;
+    jsonDoc["standbyModeOn"] = config.standbyModeOn;
+    jsonDoc["standbyModeTime"] = config.standbyModeTime;
+
+    // Serialize the JSON object to a string
+    String jsonString;
+    serializeJson(jsonDoc, jsonString);
+
+    // Write the JSON string to EEPROM
+    for (size_t i = 0; i < jsonString.length(); i++) {
+        EEPROM.write(i, jsonString[i]);
+    }
+
+    // Null-terminate the string
+    EEPROM.write(jsonString.length(), '\0');
+
+    // Commit changes to EEPROM
+    EEPROM.commit();
+
+    return true;
+}
+
+bool SetDefault(void) {
+    coffee_config config; 
+    config.pidKpRegular = AGGKP;
+    config.pidTnRegular = AGGTN;
+    config.pidOn = false;
+    config.pidTvRegular = AGGTV;
+    config.pidIMaxRegular = AGGIMAX;
+    config.brewSetpoint = SETPOINT;
+    config.brewTempOffset = TEMPOFFSET;
+    config.brewTimeMs = BREW_TIME;
+    config.preInfusionTimeMs = PRE_INFUSION_TIME;
+    config.preInfusionPauseMs = PRE_INFUSION_PAUSE_TIME;
+    config.pidBdOn = false;
+    config.pidKpBd = AGGBKP;
+    config.pidTnBd = AGGBTN;
+    config.pidTvBd = AGGBTV;
+    config.brewSwTimeSec = BREW_SW_TIME;
+    config.brewPIDDelaySec = BREW_PID_DELAY;
+    config.brewDetectionThreshold = BD_SENSITIVITY;
+    config.wifiCredentialsSaved = WIFI_CREDENTIALS_SAVED;
+    config.useStartPonM = false;
+    config.pidKpStart = STARTKP;
+    config.softApEnabledCheck = false;
+    config.pidTnStart = STARTTN;
+    config.wifiSSID = "";
+    config.wifiPassword = "";
+    config.weightSetpoint = SCALE_WEIGHTSETPOINT;
+    config.steamkp = STEAMKP;
+    config.steamSetpoint = STEAMSETPOINT;
+    config.standbyModeOn = false;
+    config.standbyModeTime = STANDBY_MODE_TIME;
+
+    return saveCoffeeConfig(config);
+}
+
+/**
+ * @brief Writes all items to the storage medium.
+ *
+ * @return  0 - succeed
+ *         <0 - failed
+ */
+int storageCommit(void) {
+    debugPrintf("%s(): save all data to NV memory\n", __func__);
+
+    //While Flash memory erase/write operations no other code must be executed from
+    //Flash
+    skipHeaterISR = true;
+
+    // really write data to storage...
+    int returnCode = EEPROM.commit() ? 0 : -1;
+
+    skipHeaterISR = false;
+
+    return returnCode;
+}
+
+// OLD FOO
+#if 0
 // set item defaults
 static const sto_data_t itemDefaults PROGMEM = {
     AGGKP,                                    // STO_ITEM_PID_KP_REGULAR
@@ -328,35 +539,7 @@ static inline bool isString(const void* buf, uint16_t bufSize) {
     return false;
 }
 
-#if 0  // not needed a.t.m.
-/**
- * @brief Sets the default values.
- */
-static void setDefaults(void) {
-    debugPrintf("%s(): %p <- %p (%u)\n", __func__, EEPROM.getDataPtr(), &itemDefaults, sizeof(itemDefaults));
-    memcpy_P(EEPROM.getDataPtr(), &itemDefaults, sizeof(itemDefaults));
-}
-#endif
 
-/**
- * @brief Setups the module.
- *
- * @return  0 - succeed
- *         <0 - failed
- */
-int storageSetup(void) {
-
-    if (!EEPROM.begin(sizeof(sto_data_t))) {
-        debugPrintf("%s(): EEPROM initialization failed!\n", __func__);
-        return -1;
-    }
-
-    /* It's not necessary here to check if any valid data are stored,
-     * because storageGet() returns a default value in this case.
-     */
-
-    return 0;
-}
 
 /**
  * @brief Internal template function to read a number of any type.
@@ -523,34 +706,6 @@ int storageGet(sto_item_id_t itemId, uint32_t& itemValue) {
     return 0;
 }
 
-#if 0
-/* The ESP32 EEPROM class does not support getConstDataPtr(). The available
- * getDataPtr() always leads to a "dirty" status (= erase/program cycle), even
- * if only read operations will be done!
- * If this function is needed, a temporary read buffer has to be used.
- */
-int storageGet(sto_item_id_t itemId, const char** itemValue) {
-    size_t itemSize;
-    int32_t itemAddr = getItemAddr(itemId);
-
-    if ((itemAddr < 0) || (itemValue == NULL))
-        return -1;
-
-    // instead of copying the string, give back pointer to string in the data structure
-    *itemValue = (const char*)(EEPROM.getConstDataPtr() + itemAddr);
-    itemSize = strlen(*itemValue) + 1;
-
-    if (isEmpty(*itemValue, itemSize)) { // item storage empty?
-        debugPrintf("%s(): storage empty -> returning default\n", __func__);
-        memcpy_P(&itemValue, (const void*)(&itemDefaults+itemAddr), itemSize);      // set default value
-    }
-
-    debugPrintf("%s(): addr=%i size=%u item=%i value=\"%s\"\n", __func__, itemAddr, itemSize, itemId, *itemValue);
-
-    return 0;
-}
-#endif
-
 int storageGet(sto_item_id_t itemId, String& itemValue) {
     uint16_t maxItemSize;
     int32_t itemAddr = getItemAddr(itemId, &maxItemSize);
@@ -658,36 +813,7 @@ int storageSet(sto_item_id_t itemId, String& itemValue, bool commit) {
     return storageSet(itemId, itemValue.c_str(), commit);
 }
 
-/**
- * @brief Writes all items to the storage medium.
- *
- * @return  0 - succeed
- *         <0 - failed
- */
-int storageCommit(void) {
-    debugPrintf("%s(): save all data to NV memory\n", __func__);
 
-    //While Flash memory erase/write operations no other code must be executed from
-    //Flash
-    skipHeaterISR = true;
 
-    // really write data to storage...
-    int returnCode = EEPROM.commit() ? 0 : -1;
 
-    skipHeaterISR = false;
-
-    return returnCode;
-}
-
-/**
- * @brief Resets all storage data.
- *
- * @return  0 - succeed
- *         <0 - failed
- */
-int storageFactoryReset(void) {
-    debugPrintf("%s(): reset all values\n", __func__);
-    memset(EEPROM.getDataPtr(), 0xFF, sizeof(sto_data_t));
-
-    return storageCommit();
-}
+#endif
